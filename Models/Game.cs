@@ -10,5 +10,10 @@ namespace pointcheck_api.Models
         public string gametype { get; set; }
         public DateTime gamedate { get; set; }
 
+        public string playerOnePlacing {get; set;}
+
+        public string playerTwoPlacing {get; set;}
+        
+
     }
 }
