@@ -14,6 +14,9 @@ namespace pointcheck_api.Models
 
         public string playerTwoPlacing {get; set;}
         
+        public string playerOneKD {get; set;}
+
+        public string playerTwoKD {get; set;}
 
     }
 }

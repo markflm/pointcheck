@@ -89,14 +89,17 @@ namespace pointcheck_api.Controllers
 
         resultObj.MatchedGames = final.ToList();                    
 
+        resultObj.playerOneName = playerOne;
+        resultObj.playerTwoName = playerTwo;
+        
         System.Diagnostics.Debug.WriteLine(final); 
 
   
-/*                  for (int i = 0, x = 0; i < resultObj.MatchedGames.Count; i++)
+                for (int i = 0, x = 0; i < resultObj.MatchedGames.Count; i++)
                 {
                     if (resultObj.MatchedGames[i].gameID == playerTwoGames[x].gameID)
                         resultObj.MatchedGames[i].playerTwoPlacing = playerTwoGames[x].playerOnePlacing;
-                }  */
+                }  
         System.Diagnostics.Debug.WriteLine(System.DateTime.Now);
                 return Ok(resultObj);
 
