@@ -34,7 +34,7 @@ namespace pointcheck_api
 
                 //may need to change AddScoped to AddSingleton later on.
             services.AddScoped<ICommanderRepo, MockCommanderRepo>();//map the ICommanderRepo interface to the MockCommanderRepo class.
-            services.AddScoped<IPointcheckRepo, PointcheckRepo>(); //will need to change to true PointcheckRepo
+            services.AddScoped<IPointcheckRepo, PointcheckRepo>(); 
             
         }
 
@@ -50,7 +50,7 @@ namespace pointcheck_api
             app.UseHttpsRedirection();
 
             app.UseRouting();
-
+        
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>

@@ -249,14 +249,43 @@ namespace pointcheck_api.DataAccess
             return  gameList; 
           
         }
+        
+       private static HttpClient _httptest = new HttpClient(); 
+        public async Task<string> fuck (Uri url)
+        {
+            
+            
+            HttpResponseMessage response = await _httptest.GetAsync(url);
 
+            string result = null;
+
+
+         try
+         {
+              response.EnsureSuccessStatusCode();
+
+              if (response.Content is object)
+              {
+                  result = await response.Content.ReadAsStringAsync();
+              }  
+         }
+         finally
+         {
+             response.Dispose();
+             
+         }
+
+        return result;
+        }
         public async Task<List<Game>> scrapeH2(bool getCustoms, string playerName)
        {
       
+           ServicePointManager.DefaultConnectionLimit = 30;
             WebClient bungie = new WebClient();
             HttpClient IDDownloader = new HttpClient();
             List<Game> gameList = new List<Game>();
 
+            
             //IDDownloader.DefaultRequestHeaders.ConnectionClose = true;
 
             string GT = playerName;
@@ -306,37 +335,39 @@ namespace pointcheck_api.DataAccess
             approxNumOfPages = (numofGames / 25) + 1; //25 games a page, +1 to make sure a page isn't missed due to integer division
             bungie.Dispose();
             
-            List<Task<string>> tasks = new List<Task<string>>();
+            List<Task<string>> newTasks = new List<Task<string>>();
             
-
+                        List<Uri> gamePages = new List<Uri>();
             List<string> taskIDandSiteLink = new List<string>();
             for (int i = 1; i <= approxNumOfPages; i++)
             {
                 Uri siteLink = new Uri(matchHistoryP1 + GT + matchHistoryP2 + i); //GT = name of player, passed to method.
-                                                                              //creates url like
-                                                                              //http://halo.bungie.net/stats/playerstatshalo3.aspx?player=infury&ctl00_mainContent_bnetpgl_recentgamesChangePage=1
+                                                                              //creates url like http://halo.bungie.net/stats/playerstatshalo3.aspx?player=infury&ctl00_mainContent_bnetpgl_recentgamesChangePage=1
 
-                tasks.Add(IDDownloader.GetStringAsync(siteLink));
+                //tasks.Add(IDDownloader.GetStringAsync(siteLink));
 
-                taskIDandSiteLink.Add(tasks.Last().Id + " " + siteLink.ToString()); //list of taskIDs and what page they should download
+                //taskIDandSiteLink.Add(tasks.Last().Id + " " + siteLink.ToString()); //list of taskIDs and what page they should download
+                newTasks.Add(fuck(siteLink));
             }
 
-            while (tasks.Count > 0)
+          
+            while (newTasks.Count > 0)
             {
                 //if (tasks.Count < 2) //debugging; why the fuck will this not complete for all tasks
                     //System.Diagnostics.Debug.WriteLine("last 15 tasks");
 
                 System.Diagnostics.Debug.WriteLine("new iteration of while loop");
-
-                var taskComplete = await Task.WhenAny(tasks);
+                
+                var taskComplete = await Task.WhenAny(newTasks);
 
                 System.Diagnostics.Debug.WriteLine("after await");
 
-                tasks.Remove(taskComplete); //remove finished task from list
-                 System.Diagnostics.Debug.WriteLine("Task " +taskComplete.Id + " finshed at " + System.DateTime.Now +" - " + tasks.Count + " tasks remain");
+                newTasks.Remove(taskComplete); //remove finished task from list
+                System.Diagnostics.Debug.WriteLine("Task " +taskComplete.Id + " finshed at " + System.DateTime.Now +" - " + newTasks.Count + " tasks remain");
 
                 try
                 {
+                    
                     taskResult = taskComplete.Result;
                     //taskComplete.Dispose();
                 }
@@ -445,7 +476,7 @@ namespace pointcheck_api.DataAccess
 
             }
 
-             IDDownloader.Dispose();
+            
 /*             if (GameDetailsTable.Rows.Count == 0) //if there aren't already games in this table from a previous instance of this method
                 GameDetailsTable = detailTable; //assign details table to player property since idk if you can return more than one thing per method
             else
