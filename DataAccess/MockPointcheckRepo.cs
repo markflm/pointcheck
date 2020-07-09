@@ -12,6 +12,10 @@ namespace pointcheck_api.DataAccess
             throw new System.NotImplementedException();
         }
 
+        public Task<string> GetEmblem(string haloGame, string playerName)
+        {
+          throw new System.NotImplementedException();
+        }
         public MatchedGamesResult GetMatchedGames(string playerOne, string playerTwo)
         {
             var returnedResult = new MatchedGamesResult{playerOneName = "Kifflom",

@@ -27,6 +27,33 @@ namespace pointcheck_api.DataAccess
 
         }
 
+        public async Task<string> GetEmblem(string haloGame, string playerName)
+        {
+            HttpClient bungie = new HttpClient();
+
+            string profileLink = null, emblemUrlLeadUp = null, baseUrl = "http://halo.bungie.net/";
+            if (haloGame == "Halo 3") 
+            {
+                profileLink = "http://halo.bungie.net/stats/playerstatshalo3.aspx?player=";
+                emblemUrlLeadUp = "identityStrip_EmblemCtrl_imgEmblem\" src=\"/";
+            }
+            else if (haloGame == "Halo 2")
+            {
+                profileLink = "http://halo.bungie.net/stats/playerstatshalo2.aspx?player=";
+                emblemUrlLeadUp = "identityStrip_EmblemCtrl2_imgEmblem\" src=\"/";
+            }
+            else //must be reach
+            {
+                //reach logic
+            }
+            string emblemFullUrl = null, fullhtml = await bungie.GetStringAsync(profileLink + playerName);
+            emblemFullUrl = fullhtml.Substring(fullhtml.IndexOf(emblemUrlLeadUp) + emblemUrlLeadUp.Length, //start substring at shortest unique lead of characters before image + length of lead
+            (fullhtml.IndexOf(" ", fullhtml.IndexOf(emblemUrlLeadUp) + emblemUrlLeadUp.Length)) - (fullhtml.IndexOf(emblemUrlLeadUp) + emblemUrlLeadUp.Length) - 1);
+            //^ dirty string work. this should probably be a regex
+
+            emblemFullUrl = emblemFullUrl.Replace("&amp;", "&");
+            return baseUrl + emblemFullUrl;
+        } 
         public void AddGamesPlayed()
         {
             throw new System.NotImplementedException();
@@ -247,15 +274,14 @@ namespace pointcheck_api.DataAccess
           
         }
         
-       private static HttpClient _httptest = new HttpClient(); 
+        private static HttpClient _httptest = new HttpClient(); 
         public async Task<string> fuck (Uri url)
-        {
-            
-            
+        {   
+          // HttpClient _httptest = new HttpClient();
+           
             HttpResponseMessage response = await _httptest.GetAsync(url);
-
+            
             string result = null;
-
 
          try
          {
@@ -266,9 +292,15 @@ namespace pointcheck_api.DataAccess
                   result = await response.Content.ReadAsStringAsync();
               }  
          }
+         catch (Exception ex)
+         {
+            throw ex;
+         }
          finally
          {
+        
              response.Dispose();
+            // _httptest.Dispose();
              
          }
 
@@ -277,9 +309,9 @@ namespace pointcheck_api.DataAccess
         public async Task<List<Game>> scrapeH2(bool getCustoms, string playerName)
        {
       
-           ServicePointManager.DefaultConnectionLimit = 30;
+           //ServicePointManager.DefaultConnectionLimit = 90;
             WebClient bungie = new WebClient();
-            HttpClient IDDownloader = new HttpClient();
+            //HttpClient IDDownloader = new HttpClient();
             List<Game> gameList = new List<Game>();
 
             
@@ -334,7 +366,6 @@ namespace pointcheck_api.DataAccess
             
             List<Task<string>> newTasks = new List<Task<string>>();
             
-                        List<Uri> gamePages = new List<Uri>();
             List<string> taskIDandSiteLink = new List<string>();
             for (int i = 1; i <= approxNumOfPages; i++)
             {
@@ -356,8 +387,6 @@ namespace pointcheck_api.DataAccess
                 System.Diagnostics.Debug.WriteLine("new iteration of while loop");
                 
                 var taskComplete = await Task.WhenAny(newTasks);
-
-                System.Diagnostics.Debug.WriteLine("after await");
 
                 newTasks.Remove(taskComplete); //remove finished task from list
                 System.Diagnostics.Debug.WriteLine("Task " +taskComplete.Id + " finshed at " + System.DateTime.Now +" - " + newTasks.Count + " tasks remain");
@@ -438,17 +467,13 @@ namespace pointcheck_api.DataAccess
                         catch
                         {
                         
-                            System.Diagnostics.Debug.WriteLine(gameID);
+                            System.Diagnostics.Debug.WriteLine(gameID + " couldn't be parsed");
                             //int ix = 0;
-                            //couldn't parse this date
+                         
                             break;
                         }
 
                 
-                        //foundGame.IsWin = [..]
-                        //dataTable.Rows.Add(x, GT, gameID, customsFlag);
-                  
-
                     }
                     catch
                     {
@@ -462,7 +487,7 @@ namespace pointcheck_api.DataAccess
                 }
                 
                
-            System.Diagnostics.Debug.WriteLine("Task " +taskComplete.Id + " completed"); 
+            System.Diagnostics.Debug.WriteLine("Task " + taskComplete.Id + " completed"); 
 
             //taskComplete.Dispose(); 
 

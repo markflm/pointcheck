@@ -42,7 +42,7 @@ namespace pointcheck_api.Controllers
 
         }
 
-        [HttpGet("scrape/{names}")] //GET api/pointcheck
+        [HttpGet("scrape/H2/{names}")] //GET api/pointcheck
         public async Task<ActionResult<List<Game>>> scrape(string names)
         {
             bool getCustoms;
@@ -52,6 +52,7 @@ namespace pointcheck_api.Controllers
            
             string playerOne = players[0]; //gamertag before the & in http req
             string playerTwo = players[1];
+            
             MatchedGamesResult resultObj = new MatchedGamesResult(); //object to be returned from the endpoint
 
             System.Diagnostics.Debug.WriteLine("Players received: " + playerOne +" " + playerTwo + " " + System.DateTime.Now);
@@ -60,7 +61,7 @@ namespace pointcheck_api.Controllers
 
                 string reqBody= await reader.ReadToEndAsync();
                 getCustoms = reqBody.Contains("\"getCustoms\":true"); //if json request body includes getCustoms:true
-                getCustoms = false;
+                getCustoms = false; //take out
 
                 System.Diagnostics.Debug.WriteLine("Getting " + playerOne + "'s games "  + System.DateTime.Now);
 
@@ -75,7 +76,7 @@ namespace pointcheck_api.Controllers
 
             System.Diagnostics.Debug.WriteLine("Getting " + playerTwo + "'s games "  + System.DateTime.Now); 
 
-                playerTwoGames = await _repository.scrapeH2(getCustoms: false, playerName: playerTwo).ConfigureAwait(false); //get mm games
+                playerTwoGames = await _repository.scrapeH2(getCustoms: false, playerName: playerTwo); //get mm games
 
             System.Diagnostics.Debug.WriteLine("Filtering game lists to find common gameIDs " + System.DateTime.Now); 
                 resultObj.MatchedGames = playerOneGames.Intersect(playerTwoGames, _comparer).ToList();
@@ -89,12 +90,12 @@ namespace pointcheck_api.Controllers
 
         resultObj.MatchedGames = final.ToList();                    
 
-        resultObj.playerOneName = playerOne;
-        resultObj.playerTwoName = playerTwo;
+        resultObj.playerOneName = playerOne; resultObj.playerTwoName = playerTwo;
         
-        System.Diagnostics.Debug.WriteLine(final); 
+        resultObj.playerOneEmblem = await _repository.GetEmblem("Halo 2", playerOne);  //link to the service record emblem
+        resultObj.playerTwoEmblem = await _repository.GetEmblem("Halo 2", playerTwo);
+    
 
-  
                 for (int i = 0, x = 0; i < resultObj.MatchedGames.Count; i++)
                 {
                     if (resultObj.MatchedGames[i].gameID == playerTwoGames[x].gameID)
