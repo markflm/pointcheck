@@ -509,92 +509,97 @@ namespace pointcheck_api.DataAccess
 
         public async Task<List<Game>> ScrapeHR(bool getCustoms, string playerName)
        {
-            WebClient bungie = new WebClient();
-            HttpClient IDDownloader = new HttpClient();
+   
+              //ServicePointManager.DefaultConnectionLimit = 90;
+            WebClient bungie = new WebClient(); //used to get count of pages of games played
+            //HttpClient IDDownloader = new HttpClient();
             List<Game> gameList = new List<Game>();
-            List<GamePlayed> playedList = new List<GamePlayed>();
 
+            
+            //IDDownloader.DefaultRequestHeaders.ConnectionClose = true;
 
             string GT = playerName;
             string matchHistoryP2;
             string matchHistoryP1;
             string fullhtml;
-            int sigStartGameCount;
-            int sigEndGameCount;
-            int numofGames;
-            int approxNumOfPages;
-            int sigStartGameID;
-            int sigEndGameID;
-            int sigMidGameID;
-            int sigStartGameType;
-            int sigEndGameType;
-            int sigStartDate;
-            int sigEndDate;
-            int sigStartMap;
-            int sigEndMap;
-            int sigStartPlaylist;
-            int sigEndPlaylist;
+            int sigStartCompGameCount, sigEndCompGameCount, sigStartCustomGameCount, sigEndCustomGameCount;
+            int numOfCompGames, numOfCustomGames;
+            int approxNumOfCompPages;
+            int sigStartGameID, sigMidGameID, sigEndGameID;
+            int sigStartGameType, sigEndGameType;;
+            int sigStartDate, sigEndDate;
+            int sigStartMap, sigEndMap;;
             string taskResult;
             int gameID = 0;
             int corruptPages = 0;
             List<string> corruptedPages = new List<string>();
-            string gametype, map, playlist, date;
-            DateTime dateConvert = new DateTime();
+            string date;
 
-            if (getCustoms)
-            {
-                matchHistoryP2 = "&cus=1&ctl00_mainContent_bnetpgl_recentgamesChangePage="; //the URL for customs
-            }
-            else
-            {
-                matchHistoryP2 = "&ctl00_mainContent_bnetpgl_recentgamesChangePage="; //URL for MM games
-            }
+            //if (getCustoms) - don't need get customs logic, customs included in regular gameID feed for H2
 
-            matchHistoryP1 = "http://halo.bungie.net/stats/playerstatshalo2.aspx?player="; //first part of match history page string
+            matchHistoryP2 = "&ctl00_mainContent_bnetpgl_recentgamesChangePage="; //URL for MM games
+
+            matchHistoryP1 = "https://halo.bungie.net/Stats/Reach/PlayerGameHistory.aspx?player="; //first part of match history page string
                                                                                            //2nd part of match history page string. concatted to current page
 
-
-            fullhtml = bungie.DownloadString(matchHistoryP1 + GT + matchHistoryP2 + 1); //first page of GT1s game history
-            sigStartGameCount = fullhtml.IndexOf("&nbsp;<strong>"); //index of first char in HTML line that gives you total MM games
-
-            sigEndGameCount = fullhtml.IndexOf("</strong>", sigStartGameCount); //index of next char after final digit of total MM games
+            int substringLen;
+            fullhtml = bungie.DownloadString(matchHistoryP1 + GT); //first page of GT1s game history
+            sigStartCompGameCount = fullhtml.IndexOf("<span id=\"ctl00_bottomContent_pieChartPopoutRepeater_ctl02_gameCountLabel\">"); //pull # of Competitive games from player profile
+                    substringLen = sigStartCompGameCount.ToString().Length; //get num of chars in sigStart; surely a better way, but we're going with it
+            sigEndCompGameCount = fullhtml.IndexOf("</span>", sigStartCompGameCount); 
             //fist char + length of that substring as start index, length of characters in number of MM games as endingChar - startingChar - length of "Intro" substring = number of MM games as string
-            numofGames = int.Parse(fullhtml.Substring(sigStartGameCount + "&nbsp;<strong>".Length, (sigEndGameCount - sigStartGameCount - "&nbsp;<strong>".Length)));
-            approxNumOfPages = (numofGames / 25) + 1; //25 games a page, +1 to make sure a page isn't missed due to integer division
-            bungie.Dispose();
+            numOfCompGames = int.Parse(fullhtml.Substring(sigStartCompGameCount + substringLen, (sigEndCompGameCount - sigStartCompGameCount - substringLen)));
+            approxNumOfCompPages = (numOfCompGames / 25) + 1; //25 games a page, +1 to make sure a page isn't missed due to integer division
             
-            List<Task<string>> tasks = new List<Task<string>>();
+            if (getCustoms)
+            {
+                int approxNumOfCustomPages;
+                sigStartCustomGameCount = fullhtml.IndexOf("<span id=\"ctl00_bottomContent_pieChartPopoutRepeater_ctl03_gameCountLabel\">2,431</span>");
+                     substringLen = sigStartCompGameCount.ToString().Length;
+                sigEndCustomGameCount = fullhtml.IndexOf("</span>");
+
+                numOfCustomGames = int.Parse(fullhtml.Substring(sigStartCustomGameCount + substringLen, (sigEndCompGameCount - sigStartCompGameCount - substringLen)));
+                approxNumOfCustomPages = (numOfCustomGames /25) +1;
+            }
             
 
+            bungie.Dispose();
+            List<Task<string>> newTasks = new List<Task<string>>();
+            
             List<string> taskIDandSiteLink = new List<string>();
-            for (int i = 1; i <= approxNumOfPages; i++)
+            for (int i = 1; i <= approxNumOfCompPages; i++)
             {
                 Uri siteLink = new Uri(matchHistoryP1 + GT + matchHistoryP2 + i); //GT = name of player, passed to method.
-                                                                              //creates url like
-                                                                              //http://halo.bungie.net/stats/playerstatshalo3.aspx?player=infury&ctl00_mainContent_bnetpgl_recentgamesChangePage=1
+                                                                              //creates url like http://halo.bungie.net/stats/playerstatshalo3.aspx?player=infury&ctl00_mainContent_bnetpgl_recentgamesChangePage=1
 
-                tasks.Add(IDDownloader.GetStringAsync(siteLink));
-
-                taskIDandSiteLink.Add(tasks.Last().Id + " " + siteLink.ToString()); //list of taskIDs and what page they should download
+                //taskIDandSiteLink.Add(tasks.Last().Id + " " + siteLink.ToString()); //list of taskIDs and what page they should download
+                newTasks.Add(httpReq(siteLink));
             }
 
-            while (tasks.Count > 0)
+          
+            while (newTasks.Count > 0)
             {
+                //if (tasks.Count < 2) //debugging; why the fuck will this not complete for all tasks
+                    //System.Diagnostics.Debug.WriteLine("last 15 tasks");
 
-                var taskComplete = await Task.WhenAny(tasks);
-
+                System.Diagnostics.Debug.WriteLine("new iteration of while loop");
                 
-                tasks.Remove(taskComplete); //remove finished task from list
+                var taskComplete = await Task.WhenAny(newTasks);
+
+                newTasks.Remove(taskComplete); //remove finished task from list
+                System.Diagnostics.Debug.WriteLine("Task " +taskComplete.Id + " finshed at " + System.DateTime.Now +" - " + newTasks.Count + " tasks remain");
 
                 try
                 {
+                    
                     taskResult = taskComplete.Result;
+                    //taskComplete.Dispose();
                 }
                 catch
                 {
                      System.Diagnostics.Debug.WriteLine(taskComplete.Id.ToString());
                     //Debug.Print(taskComplete.Id.ToString());
-                    taskComplete.Dispose();
+                   // taskComplete.Dispose();
                     taskResult = "";
                     continue;
                 }
@@ -659,15 +664,14 @@ namespace pointcheck_api.DataAccess
                         }
                         catch
                         {
-                            int ix = 0;
-                            //couldn't parse this date
+                        
+                            System.Diagnostics.Debug.WriteLine(gameID + " couldn't be parsed");
+                            //int ix = 0;
+                         
+                            break;
                         }
 
-                        foundGame.playerName = GT; foundGame.isCustom = getCustoms;
-                        //foundGame.IsWin = [..]
-                        //dataTable.Rows.Add(x, GT, gameID, customsFlag);
-                        playedList.Add(foundGame);
-
+                
                     }
                     catch
                     {
@@ -681,25 +685,15 @@ namespace pointcheck_api.DataAccess
                 }
                 
                
-
-
-                
-
-
-
-
+            System.Diagnostics.Debug.WriteLine("Task " + taskComplete.Id + " completed"); 
 
             }
 
-            IDDownloader.Dispose();
-/*             if (GameDetailsTable.Rows.Count == 0) //if there aren't already games in this table from a previous instance of this method
-                GameDetailsTable = detailTable; //assign details table to player property since idk if you can return more than one thing per method
-            else
-                GameDetailsTable.Merge(detailTable); //if rowcount != 0, merge existing GameDetailsTable with one from this instance of the method */
-           
-            return  gameList; 
+            
+        return  gameList; 
           
         }
         
     }
 }
+
