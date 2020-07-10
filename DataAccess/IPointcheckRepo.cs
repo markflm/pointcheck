@@ -13,10 +13,10 @@ namespace pointcheck_api.DataAccess
         Task<string> GetEmblem(string haloGame, string playerName);
         Game DatabaseTest();
 
-        Task<List<Game>> scrapeH3(bool getCustoms, string playerName);
+        Task<List<Game>> ScrapeH3(bool getCustoms, string playerName);
 
-        Task<List<Game>> scrapeH2(bool getCustoms, string playerName);
+        Task<List<Game>> ScrapeH2(bool getCustoms, string playerName);
 
-        Task<List<Game>> scrapeHR(bool getCustoms, string playerName);
+        Task<List<Game>> ScrapeHR(bool getCustoms, string playerName);
     }
 }

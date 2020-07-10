@@ -38,7 +38,7 @@ namespace pointcheck_api.DataAccess
           
         }
 
-        public Task<List<Game>> scrapeH3(bool getCustoms, string playerName)
+        public Task<List<Game>> ScrapeH3(bool getCustoms, string playerName)
                 {
    
       
@@ -47,7 +47,7 @@ namespace pointcheck_api.DataAccess
           
         }
 
-        public Task<List<Game>> scrapeH2(bool getCustoms, string playerName)
+        public Task<List<Game>> ScrapeH2(bool getCustoms, string playerName)
                 {
    
       
@@ -55,7 +55,7 @@ namespace pointcheck_api.DataAccess
 
           
         }
-        public Task<List<Game>> scrapeHR(bool getCustoms, string playerName)
+        public Task<List<Game>> ScrapeHR(bool getCustoms, string playerName)
                 {
    
       

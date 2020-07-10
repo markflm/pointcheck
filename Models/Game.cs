@@ -4,6 +4,7 @@ namespace pointcheck_api.Models
 {
     public class Game
     {
+        public string gameUrl {get; set;}
         public int gameID { get; set; }
         public string map { get; set; }
         public string playlist { get; set; }

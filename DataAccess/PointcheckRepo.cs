@@ -19,6 +19,39 @@ namespace pointcheck_api.DataAccess
 
         private readonly IConfiguration _config;
 
+        private static HttpClient _httptest = new HttpClient(); 
+        public async Task<string> httpReq (Uri url)
+        {   
+          // HttpClient _httptest = new HttpClient();
+           
+            HttpResponseMessage response = await _httptest.GetAsync(url);
+            
+            string result = null;
+
+         try
+         {
+              response.EnsureSuccessStatusCode();
+
+              if (response.Content is object)
+              {
+                  result = await response.Content.ReadAsStringAsync();
+              }  
+         }
+         catch (Exception ex)
+         {
+            throw ex;
+         }
+         finally
+         {
+        
+             response.Dispose();
+            // _httptest.Dispose();
+             
+         }
+
+        return result;
+        }
+
         public PointcheckRepo(IConfiguration config)
         {
             _config = config;
@@ -83,12 +116,11 @@ namespace pointcheck_api.DataAccess
           
         }
 
-       public async Task<List<Game>> scrapeH3(bool getCustoms, string playerName)
+       public async Task<List<Game>> ScrapeH3(bool getCustoms, string playerName)
        {
-            WebClient bungie = new WebClient();
-            HttpClient IDDownloader = new HttpClient();
+            WebClient bungie = new WebClient(); //used to get count of pages of games played
+            //HttpClient IDDownloader = new HttpClient();
             List<Game> gameList = new List<Game>();
-            List<GamePlayed> playedList = new List<GamePlayed>();
 
         //reformat to put multiple variables on one line
             string GT = playerName;
@@ -141,38 +173,39 @@ namespace pointcheck_api.DataAccess
             approxNumOfPages = (numofGames / 25) + 1; //25 games a page, +1 to make sure a page isn't missed due to integer division
             bungie.Dispose();
             
-            List<Task<string>> tasks = new List<Task<string>>();
+            List<Task<string>> newTasks = new List<Task<string>>();
             
 
             List<string> taskIDandSiteLink = new List<string>();
             for (int i = 1; i <= approxNumOfPages; i++)
             {
                 Uri siteLink = new Uri(matchHistoryP1 + GT + matchHistoryP2 + i); //GT = name of player, passed to method.
-                                                                              //creates url like
-                                                                              //http://halo.bungie.net/stats/playerstatshalo3.aspx?player=infury&ctl00_mainContent_bnetpgl_recentgamesChangePage=1
+                                                                              //creates url like http://halo.bungie.net/stats/playerstatshalo3.aspx?player=infury&ctl00_mainContent_bnetpgl_recentgamesChangePage=1
 
-                tasks.Add(IDDownloader.GetStringAsync(siteLink));
-
-                taskIDandSiteLink.Add(tasks.Last().Id + " " + siteLink.ToString()); //list of taskIDs and what page they should download
+                //taskIDandSiteLink.Add(tasks.Last().Id + " " + siteLink.ToString()); //list of taskIDs and what page they should download
+                newTasks.Add(httpReq(siteLink));
             }
 
-            while (tasks.Count > 0)
+            while (newTasks.Count > 0)
             {
-
-                var taskComplete = await Task.WhenAny(tasks);
-
+                System.Diagnostics.Debug.WriteLine("new iteration of while loop");
                 
-                tasks.Remove(taskComplete); //remove finished task from list
+                var taskComplete = await Task.WhenAny(newTasks);
+
+                newTasks.Remove(taskComplete); //remove finished task from list
+                System.Diagnostics.Debug.WriteLine("Task " +taskComplete.Id + " finshed at " + System.DateTime.Now +" - " + newTasks.Count + " tasks remain");
 
                 try
                 {
+                    
                     taskResult = taskComplete.Result;
+                    //taskComplete.Dispose();
                 }
                 catch
                 {
                      System.Diagnostics.Debug.WriteLine(taskComplete.Id.ToString());
                     //Debug.Print(taskComplete.Id.ToString());
-                    taskComplete.Dispose();
+                   // taskComplete.Dispose();
                     taskResult = "";
                     continue;
                 }
@@ -241,14 +274,15 @@ namespace pointcheck_api.DataAccess
                         }
                         catch
                         {
-                            int ix = 0;
+                             System.Diagnostics.Debug.WriteLine(gameID + " couldn't be parsed");
+                            //int ix = 0;
                             //couldn't parse this date
                         }
 
-                        foundGame.playerName = GT; foundGame.isCustom = getCustoms;
+                       
                         //foundGame.IsWin = [..]
                         //dataTable.Rows.Add(x, GT, gameID, customsFlag);
-                        playedList.Add(foundGame);
+                       
 
                     }
                     catch
@@ -264,7 +298,7 @@ namespace pointcheck_api.DataAccess
                 
             }
 
-            IDDownloader.Dispose();
+            
 /*             if (GameDetailsTable.Rows.Count == 0) //if there aren't already games in this table from a previous instance of this method
                 GameDetailsTable = detailTable; //assign details table to player property since idk if you can return more than one thing per method
             else
@@ -274,43 +308,12 @@ namespace pointcheck_api.DataAccess
           
         }
         
-        private static HttpClient _httptest = new HttpClient(); 
-        public async Task<string> fuck (Uri url)
-        {   
-          // HttpClient _httptest = new HttpClient();
-           
-            HttpResponseMessage response = await _httptest.GetAsync(url);
-            
-            string result = null;
 
-         try
-         {
-              response.EnsureSuccessStatusCode();
-
-              if (response.Content is object)
-              {
-                  result = await response.Content.ReadAsStringAsync();
-              }  
-         }
-         catch (Exception ex)
-         {
-            throw ex;
-         }
-         finally
-         {
-        
-             response.Dispose();
-            // _httptest.Dispose();
-             
-         }
-
-        return result;
-        }
-        public async Task<List<Game>> scrapeH2(bool getCustoms, string playerName)
+        public async Task<List<Game>> ScrapeH2(bool getCustoms, string playerName)
        {
       
            //ServicePointManager.DefaultConnectionLimit = 90;
-            WebClient bungie = new WebClient();
+            WebClient bungie = new WebClient(); //used to get count of pages of games played
             //HttpClient IDDownloader = new HttpClient();
             List<Game> gameList = new List<Game>();
 
@@ -342,14 +345,9 @@ namespace pointcheck_api.DataAccess
             List<string> corruptedPages = new List<string>();
             string date;
 
-            if (getCustoms)
-            {
-                matchHistoryP2 = "&cus=1&ctl00_mainContent_bnetpgl_recentgamesChangePage="; //the URL for customs
-            }
-            else
-            {
-                matchHistoryP2 = "&ctl00_mainContent_bnetpgl_recentgamesChangePage="; //URL for MM games
-            }
+            //if (getCustoms) - don't need get customs logic, customs included in regular gameID feed for H2
+
+            matchHistoryP2 = "&ctl00_mainContent_bnetpgl_recentgamesChangePage="; //URL for MM games
 
             matchHistoryP1 = "http://halo.bungie.net/stats/playerstatshalo2.aspx?player="; //first part of match history page string
                                                                                            //2nd part of match history page string. concatted to current page
@@ -372,10 +370,8 @@ namespace pointcheck_api.DataAccess
                 Uri siteLink = new Uri(matchHistoryP1 + GT + matchHistoryP2 + i); //GT = name of player, passed to method.
                                                                               //creates url like http://halo.bungie.net/stats/playerstatshalo3.aspx?player=infury&ctl00_mainContent_bnetpgl_recentgamesChangePage=1
 
-                //tasks.Add(IDDownloader.GetStringAsync(siteLink));
-
                 //taskIDandSiteLink.Add(tasks.Last().Id + " " + siteLink.ToString()); //list of taskIDs and what page they should download
-                newTasks.Add(fuck(siteLink));
+                newTasks.Add(httpReq(siteLink));
             }
 
           
@@ -511,7 +507,7 @@ namespace pointcheck_api.DataAccess
           
         }
 
-        public async Task<List<Game>> scrapeHR(bool getCustoms, string playerName)
+        public async Task<List<Game>> ScrapeHR(bool getCustoms, string playerName)
        {
             WebClient bungie = new WebClient();
             HttpClient IDDownloader = new HttpClient();
