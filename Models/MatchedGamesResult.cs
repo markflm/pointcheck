@@ -12,6 +12,7 @@ namespace pointcheck_api.Models
         public string playerTwoEmblem {get; set;}
         public List<Game> MatchedGames {get; set;}
         
+        public string note {get; set;}
 
 
     }

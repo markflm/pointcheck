@@ -172,57 +172,80 @@ namespace pointcheck_api.Controllers
 
                 return Ok(resultObj);
 
-      }  
-
-      [HttpGet("scrape/HR/{names}")] //GET api/pointcheck/scrape/HR/[name1&name2]
-      public async Task<ActionResult<List<Game>>> ScrapeHR(string names)
-      {
-        bool getCustoms;
-        string[] players = names.Split("&");
-
-        List<Game> playerOneGames = new List<Game>();
-        List<Game> playerTwoGames = new List<Game>();
-
-        string playerOne = players[0]; //gamertag before the & in http req
-        string playerTwo = players[1];
-
-       MatchedGamesResult resultObj = new MatchedGamesResult(); //object to be returned from the endpoint
-
-            System.Diagnostics.Debug.WriteLine("Players received: " + playerOne +" " + playerTwo + " " + System.DateTime.Now);
-            
-                var reader = new StreamReader(Request.Body); //read request's json body
-
-                string reqBody= await reader.ReadToEndAsync();
-                getCustoms = reqBody.Contains("\"getCustoms\":true"); //if json request body includes getCustoms:true
-                getCustoms = false; //take out
-
-                System.Diagnostics.Debug.WriteLine("Getting " + playerOne + "'s HR MM games "  + System.DateTime.Now);  
-
-                playerOneGames = await _repository.ScrapeHR(getCustoms, playerOne);
-
-                System.Diagnostics.Debug.WriteLine("Getting " + playerOne + "'s HR MM games "  + System.DateTime.Now);  
-
-                playerTwoGames = await _repository.ScrapeHR(getCustoms, playerTwo); 
-
-
-                System.Diagnostics.Debug.WriteLine("Filtering game lists to find common gameIDs " + System.DateTime.Now); 
-                resultObj.MatchedGames = playerOneGames.Intersect(playerTwoGames, _comparer).ToList();
-
-                string gamesMatchBaseUrl = "https://halo.bungie.net/Stats/Reach/GameStats.aspx?gameid="; //different for each game
-                        var final = from game in resultObj.MatchedGames
-                        join p2game in playerTwoGames on game.gameID  equals p2game.gameID
-                        select new Game { gameUrl = gamesMatchBaseUrl + game.gameID, gameID = game.gameID, map = game.map, playlist = game.playlist, gametype = game.gametype,
-                                     gamedate = game.gamedate, playerOnePlacing = game.playerOnePlacing, playerTwoPlacing = p2game.playerOnePlacing,
-                                     playerOneKD = game.playerOneKD, playerTwoKD = p2game.playerTwoKD};
-
-                    resultObj.MatchedGames = final.ToList();                    
-
-                    resultObj.playerOneName = playerOne; resultObj.playerTwoName = playerTwo;
-                    
-                    resultObj.playerOneEmblem = await _repository.GetEmblem("Halo Reach", playerOne);  //link to the service record emblem
-                    resultObj.playerTwoEmblem = await _repository.GetEmblem("Halo Reach", playerTwo);
-                 return Ok(resultObj); 
       }
+
+        [HttpGet("scrape/HR/{names}")] //GET api/pointcheck/scrape/HR/[name1&name2]
+        public async Task<ActionResult<List<Game>>> ScrapeHR(string names)
+        {
+            bool getCustoms;
+            string[] players = names.Split("&");
+
+            List<Game> playerOneGames = new List<Game>();
+            List<Game> playerTwoGames = new List<Game>();
+
+            string playerOne = players[0]; //gamertag before the & in http req
+            string playerTwo = players[1];
+
+            MatchedGamesResult resultObj = new MatchedGamesResult(); //object to be returned from the endpoint
+            //emblem check doubles as "does this guy exist?" check
+            resultObj.playerOneEmblem = await _repository.GetEmblem("Halo Reach", playerOne);  //link to the service record emblem
+            resultObj.playerTwoEmblem = await _repository.GetEmblem("Halo Reach", playerTwo);
+
+            if (resultObj.playerOneEmblem == null)
+            {
+                return NotFound(); //if either playerOne's name isn't a legit GT for that game
+            }
+            System.Diagnostics.Debug.WriteLine("Players received: " + playerOne + " " + playerTwo + " " + System.DateTime.Now);
+
+            var reader = new StreamReader(Request.Body); //read request's json body
+
+            string reqBody = await reader.ReadToEndAsync();
+            getCustoms = reqBody.Contains("\"getCustoms\":true"); //if json request body includes getCustoms:true
+            getCustoms = false; //take out
+
+            System.Diagnostics.Debug.WriteLine("Getting " + playerOne + "'s HR games " + System.DateTime.Now);
+
+            playerOneGames = await _repository.ScrapeHR(getCustoms, playerOne);
+            if (_repository.corrutpedCount() > 50)
+                resultObj.note += (playerOne + "has " + _repository.corrutpedCount() + " corrupted games. consider re-running ");
+
+
+
+            System.Diagnostics.Debug.WriteLine("Getting " + playerTwo + "'s HR games " + System.DateTime.Now);
+
+            playerTwoGames = await _repository.ScrapeHR(getCustoms, playerTwo);
+
+            if (_repository.corrutpedCount() > 50)
+                resultObj.note += (playerTwo + "has " + _repository.corrutpedCount() + " corrupted games. consider re-running");
+
+
+            System.Diagnostics.Debug.WriteLine("Filtering game lists to find common gameIDs " + System.DateTime.Now);
+            resultObj.MatchedGames = playerOneGames.Intersect(playerTwoGames, _comparer).ToList();
+
+            string gamesMatchBaseUrl = "https://halo.bungie.net/Stats/Reach/GameStats.aspx?gameid="; //different for each game
+            var final = from game in resultObj.MatchedGames
+                        join p2game in playerTwoGames on game.gameID equals p2game.gameID
+                        select new Game
+                        {
+                            gameUrl = gamesMatchBaseUrl + game.gameID,
+                            gameID = game.gameID,
+                            map = game.map,
+                            playlist = game.playlist,
+                            gametype = game.gametype,
+                            gamedate = game.gamedate,
+                            playerOnePlacing = game.playerOnePlacing,
+                            playerTwoPlacing = p2game.playerOnePlacing,
+                            playerOneKD = game.playerOneKD,
+                            playerTwoKD = p2game.playerOneKD
+                        };
+
+            resultObj.MatchedGames = final.ToList();
+
+            resultObj.playerOneName = playerOne; resultObj.playerTwoName = playerTwo;
+
+
+            return Ok(resultObj);
+        }
     }
 
 
