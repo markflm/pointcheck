@@ -198,8 +198,29 @@ namespace pointcheck_api.Controllers
 
                 System.Diagnostics.Debug.WriteLine("Getting " + playerOne + "'s HR MM games "  + System.DateTime.Now);  
 
-                playerOneGames = await _repository.ScrapeHR(getCustoms, playerOne); 
+                playerOneGames = await _repository.ScrapeHR(getCustoms, playerOne);
 
+                System.Diagnostics.Debug.WriteLine("Getting " + playerOne + "'s HR MM games "  + System.DateTime.Now);  
+
+                playerTwoGames = await _repository.ScrapeHR(getCustoms, playerTwo); 
+
+
+                System.Diagnostics.Debug.WriteLine("Filtering game lists to find common gameIDs " + System.DateTime.Now); 
+                resultObj.MatchedGames = playerOneGames.Intersect(playerTwoGames, _comparer).ToList();
+
+                string gamesMatchBaseUrl = "https://halo.bungie.net/Stats/Reach/GameStats.aspx?gameid="; //different for each game
+                        var final = from game in resultObj.MatchedGames
+                        join p2game in playerTwoGames on game.gameID  equals p2game.gameID
+                        select new Game { gameUrl = gamesMatchBaseUrl + game.gameID, gameID = game.gameID, map = game.map, playlist = game.playlist, gametype = game.gametype,
+                                     gamedate = game.gamedate, playerOnePlacing = game.playerOnePlacing, playerTwoPlacing = p2game.playerOnePlacing,
+                                     playerOneKD = game.playerOneKD, playerTwoKD = p2game.playerTwoKD};
+
+                    resultObj.MatchedGames = final.ToList();                    
+
+                    resultObj.playerOneName = playerOne; resultObj.playerTwoName = playerTwo;
+                    
+                    resultObj.playerOneEmblem = await _repository.GetEmblem("Halo Reach", playerOne);  //link to the service record emblem
+                    resultObj.playerTwoEmblem = await _repository.GetEmblem("Halo Reach", playerTwo);
                  return Ok(resultObj); 
       }
     }

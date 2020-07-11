@@ -77,7 +77,8 @@ namespace pointcheck_api.DataAccess
             }
             else //must be reach
             {
-                //reach logic
+                profileLink = "https://halo.bungie.net/Stats/Reach/default.aspx?player=";
+                emblemUrlLeadUp = "img id=\"ctl00_mainContent_identityBar_emblemImg\" src=\"/";
             }
             string emblemFullUrl = null, fullhtml = await bungie.GetStringAsync(profileLink + playerName);
             emblemFullUrl = fullhtml.Substring(fullhtml.IndexOf(emblemUrlLeadUp) + emblemUrlLeadUp.Length, //start substring at shortest unique lead of characters before image + length of lead
@@ -525,9 +526,10 @@ namespace pointcheck_api.DataAccess
             int numOfCompGames, numOfCustomGames;
             int approxNumOfCompPages;
             int sigStartGameType, sigEndGameType;
-            int sigStartGameID, sigMidGameID, sigEndGameID;
+            int sigStartGameID, sigEndGameID;
             int sigStartPlacing, sigEndPlacing;
             int sigStartDate, sigEndDate;
+            int sigStartKd, sigEndKd;
             int sigStartMap, sigEndMap;
             int sigStartPlaylist, sigEndPlaylist;
             string taskResult;
@@ -550,8 +552,6 @@ namespace pointcheck_api.DataAccess
                     substringLen = tagGameCount.Length; //get num of chars in sigStart; surely a better way, but we're going with it
             sigEndCompGameCount = fullhtml.IndexOf("</span>", sigStartCompGameCount); 
             //fist char + length of that substring as start index, length of characters in number of MM games as endingChar - startingChar - length of "Intro" substring = number of MM games as string
-            string tester =(fullhtml.Substring(sigStartCompGameCount + substringLen, (sigEndCompGameCount - sigStartCompGameCount - substringLen)));
-            int xx = 2;
             numOfCompGames = int.Parse((fullhtml.Substring(sigStartCompGameCount + substringLen, (sigEndCompGameCount - sigStartCompGameCount - substringLen))).Replace(",",""));
             approxNumOfCompPages = (numOfCompGames / 25) + 1; //25 games a page, +1 to make sure a page isn't missed due to integer division
           
@@ -566,8 +566,9 @@ namespace pointcheck_api.DataAccess
                 Uri siteLink = new Uri(matchHistoryP1 + matchHistoryP2 + GT + "&page=" + i); 
                  //creats url like https://halo.bungie.net/stats/reach/playergamehistory.aspx?vc=6&player=Kifflom&page=0
 
-
+                
                 newTasks.Add(httpReq(siteLink));
+                taskIDandSiteLink.Add(newTasks.Last().Id + " " + siteLink.ToString()); //list of taskIDs and what page they should download
             }
             if (getCustoms)
             {
@@ -608,17 +609,13 @@ namespace pointcheck_api.DataAccess
                 }
                 catch
                 {
-                     System.Diagnostics.Debug.WriteLine(taskComplete.Id.ToString());
-                    //Debug.Print(taskComplete.Id.ToString());
-                   // taskComplete.Dispose();
+                    System.Diagnostics.Debug.WriteLine(taskComplete.Id.ToString());
                     taskResult = "";
                     continue;
                 }
 
                 
-                sigMidGameID = 0;
-                sigStartGameID = 0;
-                sigEndGameID = 0;
+
 
                 if (taskResult.IndexOf("No games found for this player.") != -1 ||
                     taskResult.IndexOf("It seems that you have encountered a problem with our site.") != -1)
@@ -629,47 +626,64 @@ namespace pointcheck_api.DataAccess
                     continue; //if index of above IS NOT negative one, then it's a corrupted page or a customs page that doesn't exist.
                               //skip this task and await the next one
                 }
-
+                sigEndPlaylist = 0;
                 int ghStart;
+                
                 for (int x = 0; x < 25; x++) //25 GameIDs per page
                 {
-                    ghStart = taskResult.IndexOf("pTagOutcome"); //start of reach gamehistory table
+                    try{
+                    ghStart = taskResult.IndexOf("pTagOutcome", sigEndPlaylist); //start of reach gamehistory table; start at end of last column each loop
                     //reach game history starts with gameType, pull that first
                     sigStartGameType =  taskResult.IndexOf("style=\"text-transform: capitalize;\">", ghStart);
                             substringLen = "style=\"text-transform: capitalize;\">".Length;
                     sigEndGameType = taskResult.IndexOf("</a", sigStartGameType);
+                    }
+                    catch(Exception e){
+                       // taskIDandSiteLink.IndexOf(taskComplete.ID)
+                        //throw e;
+                        break; //pulled a page, like the final page, of games that has no games on it, causing ghStart to OutofIndex. skip to next task.
+                   
+                    }
                   
                     try
                     {
 
                         Game gameDetailed = new Game();
-                        //store gametype for this row
+                        //store gametype for this row -- working
                         gameDetailed.gametype = taskResult.Substring(sigStartGameType + substringLen, sigEndGameType - substringLen - sigStartGameType);
 
+                        //get gameID for this row -- working
                         sigStartGameID = taskResult.IndexOf("gameid=", sigEndGameType) + "gameid=".Length; //start of game ID string
                         sigEndGameID = taskResult.IndexOf("&amp;player", sigStartGameID);
 
                         int.TryParse(taskResult.Substring(sigStartGameID, sigEndGameID - sigStartGameID), out gameID);
                         gameDetailed.gameID = gameID;
                        
+                        //get placing for this row -- working
+                        sigStartPlacing = taskResult.IndexOf("class=\"place\">",sigEndGameID) + "class=\"place\">".Length;
+                        sigEndPlacing = taskResult.IndexOf("</p>", sigStartPlacing);
 
+                        gameDetailed.playerOnePlacing = taskResult.Substring(sigStartPlacing, sigEndPlacing - sigStartPlacing);
 
-                        //get gametype for this row 
-                      
 
                         //get date for this row -- working
-                        sigStartDate = taskResult.IndexOf("</td><td>\r\n                                ", sigEndGameType) + "</td><td>\r\n                                ".Length;
-                        sigEndDate = taskResult.IndexOf("M", sigStartDate) + 1;
+                        sigStartDate = taskResult.IndexOf("class=\"date\">", sigEndGameType) + "class=\"date\">".Length;
+                        sigEndDate = taskResult.IndexOf("</p>", sigStartDate);
                         date = taskResult.Substring(sigStartDate, sigEndDate - sigStartDate);
 
+
+                        sigStartKd = taskResult.IndexOf("class=\"spread\">", sigEndDate) + "class=\"spread\">".Length;
+                        sigEndKd = taskResult.IndexOf("</p>", sigStartKd);
+                        gameDetailed.playerOneKD = taskResult.Substring(sigStartKd, sigEndKd - sigStartKd);
+
                         //get map for this row -- working
-                        sigStartMap = taskResult.IndexOf("</td><td>\r\n                                ", sigEndDate) + "</td><td>\r\n                                ".Length;
-                        sigEndMap = taskResult.IndexOf("\r\n", sigStartMap);
+                        sigStartMap = taskResult.IndexOf("class=\"map\">", sigEndKd) + "class=\"map\">".Length;
+                        sigEndMap = taskResult.IndexOf("</p>", sigStartMap);
                         gameDetailed.map = taskResult.Substring(sigStartMap, sigEndMap - sigStartMap);
 
                         //get playlist for this row
-                        sigStartPlaylist = taskResult.IndexOf("</td><td>\r\n                                ", sigEndMap) + "</td><td>\r\n                                ".Length;
-                        sigEndPlaylist = taskResult.IndexOf("\r\n", sigStartPlaylist);
+                        sigStartPlaylist = taskResult.IndexOf("class=\"playlist\">", sigEndMap) + "class=\"playlist\">".Length;
+                        sigEndPlaylist = taskResult.IndexOf("</p>", sigStartPlaylist);
                         gameDetailed.playlist = taskResult.Substring(sigStartPlaylist, sigEndPlaylist - sigStartPlaylist);
 
 
@@ -684,8 +698,8 @@ namespace pointcheck_api.DataAccess
                         catch
                         {
                         
-                            System.Diagnostics.Debug.WriteLine(gameID + " couldn't be parsed");
-                            //int ix = 0;
+                            System.Diagnostics.Debug.WriteLine(gameID + "'s date couldn't be parsed");
+                           
                          
                             break;
                         }
@@ -695,11 +709,9 @@ namespace pointcheck_api.DataAccess
                     catch
                     {
                         x = 0;
-                        break; //if parse fails before x = 25, taskResult page didn't have a full 25 games iterate to next Task
+                        break; //if parse fails before x = 25, taskResult page didn't have a full 25 games; iterate to next Task
                     }
 
-
-                    sigMidGameID = sigEndGameID + 1; //increment index by 1 to find next instance of a GameID in the html
                     
                 }
                 
