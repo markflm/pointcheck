@@ -175,9 +175,32 @@ namespace pointcheck_api.Controllers
       }  
 
       [HttpGet("scrape/HR/{names}")] //GET api/pointcheck/scrape/HR/[name1&name2]
-      public async Task<ActionResult<List<Game>> ScrapeHR(string names)
+      public async Task<ActionResult<List<Game>>> ScrapeHR(string names)
       {
+        bool getCustoms;
+        string[] players = names.Split("&");
 
+        List<Game> playerOneGames = new List<Game>();
+        List<Game> playerTwoGames = new List<Game>();
+
+        string playerOne = players[0]; //gamertag before the & in http req
+        string playerTwo = players[1];
+
+       MatchedGamesResult resultObj = new MatchedGamesResult(); //object to be returned from the endpoint
+
+            System.Diagnostics.Debug.WriteLine("Players received: " + playerOne +" " + playerTwo + " " + System.DateTime.Now);
+            
+                var reader = new StreamReader(Request.Body); //read request's json body
+
+                string reqBody= await reader.ReadToEndAsync();
+                getCustoms = reqBody.Contains("\"getCustoms\":true"); //if json request body includes getCustoms:true
+                getCustoms = false; //take out
+
+                System.Diagnostics.Debug.WriteLine("Getting " + playerOne + "'s HR MM games "  + System.DateTime.Now);  
+
+                playerOneGames = await _repository.ScrapeHR(getCustoms, playerOne); 
+
+                 return Ok(resultObj); 
       }
     }
 
