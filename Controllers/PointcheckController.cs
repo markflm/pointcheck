@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -18,89 +19,113 @@ namespace pointcheck_api.Controllers
         private readonly IPointcheckRepo _repository;
         private readonly GameIDComparer _comparer;
 
-        public PointcheckController(IPointcheckRepo repository){
+        public PointcheckController(IPointcheckRepo repository)
+        {
             _repository = repository;
             _comparer = new GameIDComparer();
         }
 
-        [HttpGet] //GET api/pointcheck
-        public ActionResult <IEnumerable<MatchedGamesResult>> GetResults()
+        [HttpGet] //GET api/pointcheck; default route - to be deleted
+        public ActionResult<IEnumerable<MatchedGamesResult>> GetResults()
         {
-                var result = _repository.GetMatchedGames("Kifflom","Infury");
-
-                return Ok(result);
+           
+            return NotFound();
 
         }
 
         [HttpGet("db")] //GET api/pointcheck
-        public ActionResult <IEnumerable<Game>> GetResultsFromDB()
+        public ActionResult<IEnumerable<Game>> GetResultsFromDB()
         {
-            
-                var result = _repository.DatabaseTest();
-                System.Diagnostics.Debug.WriteLine(result);
-                return Ok(result);
+
+            var result = _repository.DatabaseTest();
+            System.Diagnostics.Debug.WriteLine(result);
+            return Ok(result);
 
         }
 
-     [HttpGet("scrape/H2/{names}")] //GET api/pointcheck
-      public async Task<ActionResult<List<Game>>> ScrapeH2(string names)
+        [HttpGet("scrape/H2/{names}")] //GET api/pointcheck
+        public async Task<ActionResult<List<Game>>> ScrapeH2(string names)
         {
-            
+
             string[] players = names.Split("&");
             List<Game> playerOneGames = new List<Game>();
             List<Game> playerTwoGames = new List<Game>();
-           
-            string playerOne = players[0]; //gamertag before the & in http req
+
+            string playerOne = players[0]; //gamertag before the & in http req - spaces seem to work by default?
             string playerTwo = players[1];
-            
+
             MatchedGamesResult resultObj = new MatchedGamesResult(); //object to be returned from the endpoint
 
-            System.Diagnostics.Debug.WriteLine("Players received: " + playerOne +" " + playerTwo + " " + System.DateTime.Now);
-            
-                //var reader = new StreamReader(Request.Body); //read request's json body
+            resultObj.playerOneEmblem = await _repository.GetEmblem("Halo 2", playerOne);  //link to the service record emblem
+            resultObj.playerTwoEmblem = await _repository.GetEmblem("Halo 2", playerTwo);
 
-                //string reqBody= await reader.ReadToEndAsync(); - don't need to read body; no customs for H2
+            if (resultObj.playerOneEmblem == null)
+            {
+                resultObj.note = playerOne + " has no Bungie.net games for Halo 2";
+                return NotFound(resultObj); //if either playerOne's name isn't a legit GT for that game
+            }
+            else if (resultObj.playerTwoEmblem == null)
+            {
+                resultObj.note = playerTwo + " has no Bungie.net games for Halo 2";
+                return NotFound(resultObj); //if either playerTwo's name isn't a legit GT for that game
+            }
 
 
-                System.Diagnostics.Debug.WriteLine("Getting " + playerOne + "'s games "  + System.DateTime.Now);
+            System.Diagnostics.Debug.WriteLine("Players received: " + playerOne + " " + playerTwo + " " + System.DateTime.Now);
 
-                playerOneGames = await _repository.ScrapeH2(getCustoms: false, playerName: playerOne); //get mm games
+            //var reader = new StreamReader(Request.Body); //read request's json body
+
+            //string reqBody= await reader.ReadToEndAsync(); - don't need to read body; no customs for H2
 
 
-            System.Diagnostics.Debug.WriteLine("Getting " + playerTwo + "'s games "  + System.DateTime.Now); 
+            System.Diagnostics.Debug.WriteLine("Getting " + playerOne + "'s H2 games " + System.DateTime.Now);
 
-                playerTwoGames = await _repository.ScrapeH2(getCustoms: false, playerName: playerTwo); //get mm games
+            playerOneGames = await _repository.ScrapeH2(getCustoms: false, playerName: playerOne); //get mm games
 
-            System.Diagnostics.Debug.WriteLine("Filtering game lists to find common gameIDs " + System.DateTime.Now); 
-                resultObj.MatchedGames = playerOneGames.Intersect(playerTwoGames, _comparer).ToList();
+            if (_repository.CorruptedCount() > 50)
+                resultObj.note += (playerOne + "has " + _repository.CorruptedCount() + " corrupted games. consider re-running ");
+
+
+            System.Diagnostics.Debug.WriteLine("Getting " + playerTwo + "'s H2 games " + System.DateTime.Now);
+
+            playerTwoGames = await _repository.ScrapeH2(getCustoms: false, playerName: playerTwo); //get mm games
+
+            if (_repository.CorruptedCount() > 50)
+                resultObj.note += (playerTwo + "has " + _repository.CorruptedCount() + " corrupted games. consider re-running ");
+
+            System.Diagnostics.Debug.WriteLine("Filtering game lists to find common gameIDs " + System.DateTime.Now);
+            resultObj.MatchedGames = playerOneGames.Intersect(playerTwoGames, _comparer).ToList();
 
             string gamesMatchBaseUrl = "https://halo.bungie.net/Stats/GameStatsHalo2.aspx?gameid="; //different for each game
             var final = from game in resultObj.MatchedGames
-                        join p2game in playerTwoGames on game.gameID  equals p2game.gameID
-                        select new Game { gameUrl = gamesMatchBaseUrl + game.gameID, gameID = game.gameID, map = game.map, playlist = game.playlist, gametype = game.gametype,
-                                     gamedate = game.gamedate, playerOnePlacing = game.playerOnePlacing, playerTwoPlacing = p2game.playerOnePlacing};
+                        join p2game in playerTwoGames on game.gameID equals p2game.gameID
+                        select new Game
+                        {
+                            gameUrl = gamesMatchBaseUrl + game.gameID,
+                            gameID = game.gameID,
+                            map = game.map,
+                            playlist = game.playlist,
+                            gametype = game.gametype,
+                            gamedate = game.gamedate,
+                            playerOnePlacing = game.playerOnePlacing,
+                            playerTwoPlacing = p2game.playerOnePlacing
+                        };
 
-        resultObj.MatchedGames = final.ToList();                    
+            resultObj.MatchedGames = final.ToList();
 
-        resultObj.playerOneName = playerOne; resultObj.playerTwoName = playerTwo;
-        
-        resultObj.playerOneEmblem = await _repository.GetEmblem("Halo 2", playerOne);  //link to the service record emblem
-        resultObj.playerTwoEmblem = await _repository.GetEmblem("Halo 2", playerTwo);
-    
+            resultObj.playerOneName = playerOne; resultObj.playerTwoName = playerTwo;
 
-                for (int i = 0, x = 0; i < resultObj.MatchedGames.Count; i++)
-                {
-                    if (resultObj.MatchedGames[i].gameID == playerTwoGames[x].gameID)
-                        resultObj.MatchedGames[i].playerTwoPlacing = playerTwoGames[x].playerOnePlacing;
-                }  
-        System.Diagnostics.Debug.WriteLine(System.DateTime.Now);
-                return Ok(resultObj);
+            resultObj.MatchedGames.Sort((x, y) => DateTime.Compare(y.gamedate, x.gamedate));
+            System.Diagnostics.Debug.WriteLine("sending resultObj" + System.DateTime.Now);
+
+            return Ok(resultObj);
 
         }
 
         [HttpGet("scrape/H3/{names}")] //GET api/pointcheck/scrape/H3/[name1&name2]
         public async Task<ActionResult<List<Game>>> ScrapeH3(string names)
         {
+            //need to refactor H3 scrape in repository to handle customs in one call like HR does
             bool getCustoms;
             string[] players = names.Split("&");
 
@@ -114,7 +139,7 @@ namespace pointcheck_api.Controllers
 
             resultObj.playerOneEmblem = await _repository.GetEmblem("Halo 3", playerOne);  //link to the service record emblem
             resultObj.playerTwoEmblem = await _repository.GetEmblem("Halo 3", playerTwo);
-            
+
             if (resultObj.playerOneEmblem == null)
             {
                 resultObj.note = playerOne + " has no Bungie.net games for Halo 3";
@@ -138,6 +163,9 @@ namespace pointcheck_api.Controllers
 
             playerOneGames = await _repository.ScrapeH3(getCustoms: false, playerName: playerOne); //get mm games
 
+            if (_repository.CorruptedCount() > 50)
+                resultObj.note += (playerOne + " has " + _repository.CorruptedCount() + " corrupted games. consider re-running ");
+
             if (getCustoms)
             {
                 System.Diagnostics.Debug.WriteLine("Getting " + playerOne + "'s H3 Custom games " + System.DateTime.Now);
@@ -150,6 +178,9 @@ namespace pointcheck_api.Controllers
             System.Diagnostics.Debug.WriteLine("Getting " + playerTwo + "'s H3 MM games " + System.DateTime.Now);
 
             playerTwoGames = await _repository.ScrapeH3(getCustoms: false, playerName: playerTwo); //get mm games
+
+            if (_repository.CorruptedCount() > 50)
+                resultObj.note += (playerTwo + " has " + _repository.CorruptedCount() + " corrupted games. consider re-running ");
 
             if (getCustoms)
             {
@@ -166,7 +197,7 @@ namespace pointcheck_api.Controllers
             string gamesMatchBaseUrl = "https://halo.bungie.net/Stats/GameStatsHalo3.aspx?gameid="; //different for each game
             var final = from game in resultObj.MatchedGames
                         join p2game in playerTwoGames on game.gameID equals p2game.gameID
-                        select new Game
+                        select new Game //get games both players share
                         {
                             gameUrl = gamesMatchBaseUrl + game.gameID,
                             gameID = game.gameID,
@@ -182,16 +213,8 @@ namespace pointcheck_api.Controllers
 
             resultObj.playerOneName = playerOne; resultObj.playerTwoName = playerTwo;
 
-            resultObj.playerOneEmblem = await _repository.GetEmblem("Halo 3", playerOne);  //link to the service record emblem
-            resultObj.playerTwoEmblem = await _repository.GetEmblem("Halo 3", playerTwo);
-
-            //find games both players played in
-            for (int i = 0, x = 0; i < resultObj.MatchedGames.Count; i++)
-            {
-                if (resultObj.MatchedGames[i].gameID == playerTwoGames[x].gameID)
-                    resultObj.MatchedGames[i].playerTwoPlacing = playerTwoGames[x].playerOnePlacing;
-            }
-            System.Diagnostics.Debug.WriteLine(System.DateTime.Now);
+            resultObj.MatchedGames.Sort((x, y) => DateTime.Compare(y.gamedate, x.gamedate));
+            System.Diagnostics.Debug.WriteLine("sending resultObj" + System.DateTime.Now);
 
             return Ok(resultObj);
 
@@ -269,9 +292,10 @@ namespace pointcheck_api.Controllers
                         };
 
             resultObj.MatchedGames = final.ToList();
-
+            resultObj.MatchedGames.Sort((x, y) => DateTime.Compare(y.gamedate, x.gamedate)); //order games by date desc
             resultObj.playerOneName = playerOne; resultObj.playerTwoName = playerTwo;
 
+            System.Diagnostics.Debug.WriteLine("sending resultObj" + System.DateTime.Now);
 
             return Ok(resultObj);
         }
