@@ -62,12 +62,12 @@ namespace pointcheck_api.Controllers
             if (resultObj.playerOneEmblem == null)
             {
                 resultObj.note = playerOne + " has no Bungie.net games for Halo 2";
-                return NotFound(resultObj); //if either playerOne's name isn't a legit GT for that game
+                return Ok(resultObj); //if either playerOne's name isn't a legit GT for that game
             }
             else if (resultObj.playerTwoEmblem == null)
             {
                 resultObj.note = playerTwo + " has no Bungie.net games for Halo 2";
-                return NotFound(resultObj); //if either playerTwo's name isn't a legit GT for that game
+                return Ok(resultObj); //if either playerTwo's name isn't a legit GT for that game
             }
 
 
@@ -143,12 +143,12 @@ namespace pointcheck_api.Controllers
             if (resultObj.playerOneEmblem == null)
             {
                 resultObj.note = playerOne + " has no Bungie.net games for Halo 3";
-                return NotFound(resultObj); //if either playerOne's name isn't a legit GT for that game
+                return Ok(resultObj); //if either playerOne's name isn't a legit GT for that game
             }
             else if (resultObj.playerTwoEmblem == null)
             {
                 resultObj.note = playerTwo + " has no Bungie.net games for Halo 3";
-                return NotFound(resultObj); //if either playerOne's name isn't a legit GT for that game
+                return Ok(resultObj); //if either playerOne's name isn't a legit GT for that game
             }
 
             System.Diagnostics.Debug.WriteLine("Players received: " + playerOne + " " + playerTwo + " " + System.DateTime.Now);
@@ -240,12 +240,12 @@ namespace pointcheck_api.Controllers
             if (resultObj.playerOneEmblem == null)
             {
                 resultObj.note = playerOne + " has no Bungie.net games for Halo Reach";
-                return NotFound(resultObj); //if either playerOne's name isn't a legit GT for that game
+                return Ok(resultObj); //if either playerOne's name isn't a legit GT for that game
             }
             else if (resultObj.playerTwoEmblem == null)
             {
                 resultObj.note = playerTwo + " has no Bungie.net games for Halo Reach";
-                return NotFound(resultObj); //if either playerOne's name isn't a legit GT for that game
+                return Ok(resultObj); //if either playerOne's name isn't a legit GT for that game
             }
             System.Diagnostics.Debug.WriteLine("Players received: " + playerOne + " " + playerTwo + " " + System.DateTime.Now);
 

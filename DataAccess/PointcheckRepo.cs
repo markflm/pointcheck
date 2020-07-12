@@ -19,15 +19,15 @@ namespace pointcheck_api.DataAccess
 
         private readonly IConfiguration _config;
 
-        public PointcheckRepo(string connString)
+        public PointcheckRepo(IConfiguration config)
         {
-            this.db = new SqlConnection(connString);
+            _config = config;
 
-/*             this._config = new ConfigurationBuilder()
-                 .AddJsonFile("appsettings.json", true,true)
-                 .Build();
-            var x = _config.GetSection */
+            this.db = new SqlConnection(_config.GetConnectionString("cloudserver"));
+
         }
+
+
         private static HttpClient _httptest = new HttpClient(); //only http client. used to scrape bungie.net
 
         public int _corruptedCount = 0; //# of corrupted bungie pages hit by scrape method. resets each run. 
@@ -66,14 +66,7 @@ namespace pointcheck_api.DataAccess
         //return number of corrupt pages; currently only used for HR as that seems to corrupt the most
         public int CorruptedCount()
         {
-            return _corruptedCount; 
-        }
-        public PointcheckRepo(IConfiguration config)
-        {
-            _config = config;
-
-            this.db = new SqlConnection(_config.GetConnectionString("cloudserver"));
-
+            return _corruptedCount;
         }
 
         public async Task<string> GetEmblem(string haloGame, string playerName)
@@ -119,14 +112,19 @@ namespace pointcheck_api.DataAccess
                 return null; //return null if player doesn't exist
         }
 
-       public bool IsInDbH3(){
-throw new System.NotImplementedException();
+        public bool IsInDbH3()
+        {
+            throw new System.NotImplementedException();
+
+            //this.db.Query
         }
-       public bool IsInDbH2(){
-throw new System.NotImplementedException();
+        public bool IsInDbH2()
+        {
+            throw new System.NotImplementedException();
         }
-       public bool IsInDbHR(){
-throw new System.NotImplementedException();
+        public bool IsInDbHR()
+        {
+            throw new System.NotImplementedException();
         }
         public void AddGamesPlayed()
         {
@@ -588,10 +586,10 @@ throw new System.NotImplementedException();
                                                                                             //2nd part of match history page string. concatted to current page
             playerProfile = "https://halo.bungie.net/Stats/Reach/default.aspx?player=";
             int substringLen;
-           
+
             fullhtml = bungie.DownloadString(playerProfile + GT); //first page of GT1s game history
             int tagGameCount = fullhtml.IndexOf("<h4>Competitive</h4>"); //where to look in html to pull # of comp games
-            sigStartCompGameCount = fullhtml.IndexOf("\">",tagGameCount); //pull # of Competitive games from player profile
+            sigStartCompGameCount = fullhtml.IndexOf("\">", tagGameCount); //pull # of Competitive games from player profile
             sigEndCompGameCount = fullhtml.IndexOf("</span>", sigStartCompGameCount);
             //fist char + length of that substring as start index, length of characters in number of MM games as endingChar - startingChar - length of "Intro" substring = number of MM games as string
             numOfCompGames = int.Parse((fullhtml.Substring(sigStartCompGameCount + "\">".Length, (sigEndCompGameCount - sigStartCompGameCount - "\">".Length))).Replace(",", ""));
@@ -614,22 +612,22 @@ throw new System.NotImplementedException();
             }
             if (getCustoms)
             {
-/*                 int approxNumOfCustomPages;
-                tagGameCount = "<span id=\"ctl00_bottomContent_pieChartPopoutRepeater_ctl03_gameCountLabel\">2,431</span>";
-                sigStartCustomGameCount = fullhtml.IndexOf(tagGameCount);
-                substringLen = tagGameCount.Length;
-                sigEndCustomGameCount = fullhtml.IndexOf("</span>");
+                /*                 int approxNumOfCustomPages;
+                                tagGameCount = "<span id=\"ctl00_bottomContent_pieChartPopoutRepeater_ctl03_gameCountLabel\">2,431</span>";
+                                sigStartCustomGameCount = fullhtml.IndexOf(tagGameCount);
+                                substringLen = tagGameCount.Length;
+                                sigEndCustomGameCount = fullhtml.IndexOf("</span>");
 
-                numOfCustomGames = int.Parse(fullhtml.Substring(sigStartCustomGameCount + substringLen, (sigEndCompGameCount - sigStartCompGameCount - substringLen)).Replace(",", "")); //remove comma in thousands
-                approxNumOfCustomPages = (numOfCustomGames / 25) + 1;
-                matchHistoryP2 = "vc=6&player="; //vc6 == customs
+                                numOfCustomGames = int.Parse(fullhtml.Substring(sigStartCustomGameCount + substringLen, (sigEndCompGameCount - sigStartCompGameCount - substringLen)).Replace(",", "")); //remove comma in thousands
+                                approxNumOfCustomPages = (numOfCustomGames / 25) + 1;
+                                matchHistoryP2 = "vc=6&player="; //vc6 == customs
 
-                for (int i = 1; i <= approxNumOfCustomPages; i++)
-                {
-                    Uri siteLink = new Uri(matchHistoryP1 + matchHistoryP2 + GT + "&page=" + i);
+                                for (int i = 1; i <= approxNumOfCustomPages; i++)
+                                {
+                                    Uri siteLink = new Uri(matchHistoryP1 + matchHistoryP2 + GT + "&page=" + i);
 
-                    newTasks.Add(httpReq(siteLink));
-                } */
+                                    newTasks.Add(httpReq(siteLink));
+                                } */
             }
 
 
@@ -664,7 +662,7 @@ throw new System.NotImplementedException();
                 {
                     _corruptedCount++;
                     corruptedPages.Add(taskResult);
-                    
+
                     continue; //if index of above IS NOT negative one, then it's a corrupted page or a customs page that doesn't exist.
                               //skip this task and await the next one
                 }
