@@ -253,7 +253,7 @@ namespace pointcheck_api.Controllers
 
             string reqBody = await reader.ReadToEndAsync();
             getCustoms = reqBody.Contains("\"getCustoms\":true"); //if json request body includes getCustoms:true
-            getCustoms = false; //take out
+            //getCustoms = false; //take out
 
             System.Diagnostics.Debug.WriteLine("Getting " + playerOne + "'s HR games " + System.DateTime.Now);
 

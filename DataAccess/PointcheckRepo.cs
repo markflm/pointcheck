@@ -109,6 +109,16 @@ namespace pointcheck_api.DataAccess
             else
                 return null; //return null if player doesn't exist
         }
+
+       public bool IsInDbH3(){
+throw new System.NotImplementedException();
+        }
+       public bool IsInDbH2(){
+throw new System.NotImplementedException();
+        }
+       public bool IsInDbHR(){
+throw new System.NotImplementedException();
+        }
         public void AddGamesPlayed()
         {
             throw new System.NotImplementedException();

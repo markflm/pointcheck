@@ -19,6 +19,18 @@ namespace pointcheck_api.DataAccess
         public int CorruptedCount(){
           throw new System.NotImplementedException();
         }
+
+        public bool IsInDbH3(){
+throw new System.NotImplementedException();
+        }
+
+        public bool IsInDbH2(){
+throw new System.NotImplementedException();          
+        }
+
+        public bool IsInDbHR(){
+throw new System.NotImplementedException();
+        }
         public MatchedGamesResult GetMatchedGames(string playerOne, string playerTwo)
         {
             var returnedResult = new MatchedGamesResult{playerOneName = "Kifflom",

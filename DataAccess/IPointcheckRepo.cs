@@ -15,6 +15,12 @@ namespace pointcheck_api.DataAccess
         int CorruptedCount();
         Game DatabaseTest();
 
+        bool IsInDbH3();
+
+        bool IsInDbH2();
+
+        bool IsInDbHR();
+
         Task<List<Game>> ScrapeH3(bool getCustoms, string playerName);
 
         Task<List<Game>> ScrapeH2(bool getCustoms, string playerName);
