@@ -11,6 +11,8 @@ namespace pointcheck_api.DataAccess
         MatchedGamesResult GetMatchedGames(string playerOne, string playerTwo);
         
         Task<string> GetEmblem(string haloGame, string playerName);
+
+        int CorruptedCount();
         Game DatabaseTest();
 
         Task<List<Game>> ScrapeH3(bool getCustoms, string playerName);

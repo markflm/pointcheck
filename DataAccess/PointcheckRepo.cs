@@ -71,30 +71,33 @@ namespace pointcheck_api.DataAccess
         {
             HttpClient bungie = new HttpClient();
 
-            string profileLink = null, emblemUrlLeadUp = null, baseUrl = "http://halo.bungie.net/", errorString = null;
+            string profileLink = null, emblemUrlLeadUp = null, baseUrl = "http://halo.bungie.net/", errorString = null, errorString2;
             if (haloGame == "Halo 3")
             {
                 profileLink = "http://halo.bungie.net/stats/playerstatshalo3.aspx?player=";
                 emblemUrlLeadUp = "identityStrip_EmblemCtrl_imgEmblem\" src=\"/";
-                errorString = "No games found for this player. Please try again";
+                errorString = "We were not able to find any record of Halo 3 activity";
+                errorString2 = "No games found for this player"; //sometimes this generic error page comes up
             }
             else if (haloGame == "Halo 2")
             {
                 profileLink = "http://halo.bungie.net/stats/playerstatshalo2.aspx?player=";
                 emblemUrlLeadUp = "identityStrip_EmblemCtrl2_imgEmblem\" src=\"/";
                 errorString = "We were not able to find any record of Halo 2 activity";
+                errorString2 = "No games found for this player"; //sometimes this generic error page comes up
             }
             else //must be reach
             {
                 profileLink = "https://halo.bungie.net/Stats/Reach/default.aspx?player=";
                 emblemUrlLeadUp = "img id=\"ctl00_mainContent_identityBar_emblemImg\" src=\"/";
                 errorString = "We were not able to find any record of Halo: Reach activity";
+                errorString2 = "No games found for this player"; //sometimes this generic error page comes up
             }
 
 
             string emblemFullUrl = null, fullhtml = await bungie.GetStringAsync(profileLink + playerName);
             //gamertag exists check
-            if (fullhtml.IndexOf(errorString) == -1)
+            if (fullhtml.IndexOf(errorString) == -1 && fullhtml.IndexOf(errorString2) == -1)
             {
                 emblemFullUrl = fullhtml.Substring(fullhtml.IndexOf(emblemUrlLeadUp) + emblemUrlLeadUp.Length, //start substring at shortest unique lead of characters before image + length of lead
                 (fullhtml.IndexOf(" ", fullhtml.IndexOf(emblemUrlLeadUp) + emblemUrlLeadUp.Length)) - (fullhtml.IndexOf(emblemUrlLeadUp) + emblemUrlLeadUp.Length) - 1);
