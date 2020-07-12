@@ -16,6 +16,9 @@ namespace pointcheck_api.DataAccess
         {
           throw new System.NotImplementedException();
         }
+        public int CorruptedCount(){
+          throw new System.NotImplementedException();
+        }
         public MatchedGamesResult GetMatchedGames(string playerOne, string playerTwo)
         {
             var returnedResult = new MatchedGamesResult{playerOneName = "Kifflom",
