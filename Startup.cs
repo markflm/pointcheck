@@ -21,6 +21,7 @@ namespace pointcheck_api
 
             Configuration = configuration;
 
+
         }
 
         public IConfiguration Configuration { get; set;}
@@ -28,13 +29,15 @@ namespace pointcheck_api
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            
+
             services.AddControllers();
 
+            
 
                 //may need to change AddScoped to AddSingleton later on.
             services.AddScoped<ICommanderRepo, MockCommanderRepo>();//map the ICommanderRepo interface to the MockCommanderRepo class.
-            services.AddScoped<IPointcheckRepo, PointcheckRepo>(); 
+            services.AddScoped<IPointcheckRepo, PointcheckRepo>();
+             
             
         }
 
@@ -47,6 +50,11 @@ namespace pointcheck_api
                 app.UseDeveloperExceptionPage();
             }
 
+            app.UseCors(builder => {
+                builder.AllowAnyOrigin();
+                builder.AllowAnyMethod();
+                builder.AllowAnyHeader();
+            });
             app.UseHttpsRedirection();
 
             app.UseRouting();

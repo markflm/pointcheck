@@ -19,9 +19,18 @@ namespace pointcheck_api.DataAccess
 
         private readonly IConfiguration _config;
 
-        private static HttpClient _httptest = new HttpClient();
+        public PointcheckRepo(string connString)
+        {
+            this.db = new SqlConnection(connString);
 
-        public int _corruptedCount = 0;
+/*             this._config = new ConfigurationBuilder()
+                 .AddJsonFile("appsettings.json", true,true)
+                 .Build();
+            var x = _config.GetSection */
+        }
+        private static HttpClient _httptest = new HttpClient(); //only http client. used to scrape bungie.net
+
+        public int _corruptedCount = 0; //# of corrupted bungie pages hit by scrape method. resets each run. 
         public async Task<string> httpReq(Uri url)
         {
             // HttpClient _httptest = new HttpClient();
