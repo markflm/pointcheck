@@ -135,7 +135,7 @@ namespace pointcheck_api.DataAccess
         }
         public async void AddGamesPlayed(string player, string gameName, List<Game> gamesList)
         {
-            DataTable insertedGames = new DataTable();
+/*             DataTable insertedGames = new DataTable();
 
             insertedGames.Columns.Add("Player", typeof(string));
             insertedGames.Columns.Add("Game", typeof(string));
@@ -151,15 +151,16 @@ namespace pointcheck_api.DataAccess
             {
                 //object[] o = {player, gameName, i.gameID, i.map, i.playlist, i.gametype, i.playerOneKD, i.playerOnePlacing, i.gamedate};
                 insertedGames.Rows.Add(new {player, gameName, i.gameID, i.map, i.playlist, i.gametype, i.playerOneKD, i.playerOnePlacing, i.gamedate});
-            }
+            } */
+            db.Open();
+            //trying to get this to work atm
+            db.Execute($@"
+            INSERT INTO CachedGames(Player, Game, GameID, Map, Playlist, Gametype, GameDate, PlayerPlacing, PlayerKD) 
+            VALUES('kifflom', 'halo 3', 12312312, 'the pit', 'mlg', 'slayer', 1/1/2011,'1st', '+2')");
 
-            IDbTransaction trans = db.BeginTransaction();
 
-            db.ExecuteAsync(@"
-            INSERT INTO CachedGames(Player, Game, GameID, Map, Playlist, Gametype, PlayerKD, PlayerPlacing, GameDate, DateStored)
-            VALUES(@Player, @Game, @GameID, @Map, @Playlist, @Gametype, @PlayerKD, @PlayerPlacing, @GameDate)", insertedGames, transaction: trans);
-
-
+            
+            db.Close();
             //throw new System.NotImplementedException();
         }
 
