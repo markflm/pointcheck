@@ -132,6 +132,10 @@ namespace pointcheck_api.Controllers
             List<Game> playerOneGames = new List<Game>();
             List<Game> playerTwoGames = new List<Game>();
 
+            var reader = new StreamReader(Request.Body); //read request's json body
+            string reqBody = await reader.ReadToEndAsync();
+            getCustoms = reqBody.Contains("\"getCustoms\":true"); //if json request body includes getCustoms:true
+                                                                  //getCustoms = false; //take out
             string playerOne = players[0]; //gamertag before the & in http req
             string playerTwo = players[1];
 
@@ -153,31 +157,57 @@ namespace pointcheck_api.Controllers
 
             System.Diagnostics.Debug.WriteLine("Players received: " + playerOne + " " + playerTwo + " " + System.DateTime.Now);
 
-            var reader = new StreamReader(Request.Body); //read request's json body
+            PlayerStoredResult playerOneStatus = _repository.IsInDbH3(playerOne, "Halo 3");
 
-            string reqBody = await reader.ReadToEndAsync();
-            getCustoms = reqBody.Contains("\"getCustoms\":true"); //if json request body includes getCustoms:true
-                                                                  //getCustoms = false; //take out
+            PlayerStoredResult playerTwoStatus = _repository.IsInDbH3(playerTwo, "Halo 3");
+
+
 
             System.Diagnostics.Debug.WriteLine("Getting " + playerOne + "'s H3 MM games " + System.DateTime.Now);
 
-            playerOneGames = await _repository.ScrapeH3(getCustoms: false, playerName: playerOne); //get mm games
+            if (playerOneStatus.HasMM) //pull from DB if exists
+            {
+                //playerOneGames = pull from db
+            }
+            else //else scrape
+            {
+                playerOneGames = await _repository.ScrapeH3(getCustoms: false, playerName: playerOne); //get mm games 
+            }
+
 
             if (_repository.CorruptedCount() > 50)
                 resultObj.note += (playerOne + " has " + _repository.CorruptedCount() + " corrupted games. consider re-running ");
 
             if (getCustoms)
             {
-                System.Diagnostics.Debug.WriteLine("Getting " + playerOne + "'s H3 Custom games " + System.DateTime.Now);
+                 System.Diagnostics.Debug.WriteLine("Getting " + playerOne + "'s H3 Custom games " + System.DateTime.Now);
+                if (playerOneStatus.HasCustom)
+                {
+                    //pull customs from DB; append
+                }
+                else
+                {
+                    var result = await _repository.ScrapeH3(getCustoms: true, playerName: playerOne); //get custom games if requested
+                    playerOneGames.AddRange(result); //append customs to list
 
-                var result = await _repository.ScrapeH3(getCustoms: true, playerName: playerOne); //get custom games if requested
-                playerOneGames.AddRange(result); //append customs to list
+                }
+                
+
+
 
             }
 
             System.Diagnostics.Debug.WriteLine("Getting " + playerTwo + "'s H3 MM games " + System.DateTime.Now);
 
-            playerTwoGames = await _repository.ScrapeH3(getCustoms: false, playerName: playerTwo); //get mm games
+            if (playerTwoStatus.HasMM)
+            {
+                //playerTwoGames = await _repository.ScrapeH3(getCustoms: false, playerName: playerTwo); //get mm games
+            }
+            else
+            {
+                playerTwoGames = await _repository.ScrapeH3(getCustoms: false, playerName: playerTwo); //get mm games
+            }
+            
 
             if (_repository.CorruptedCount() > 50)
                 resultObj.note += (playerTwo + " has " + _repository.CorruptedCount() + " corrupted games. consider re-running ");
@@ -185,9 +215,15 @@ namespace pointcheck_api.Controllers
             if (getCustoms)
             {
                 System.Diagnostics.Debug.WriteLine("Getting " + playerTwo + "'s H3 Custom games " + System.DateTime.Now);
-
-                var result = await _repository.ScrapeH3(getCustoms: true, playerName: playerTwo); //get custom games if requested
-                playerTwoGames.AddRange(result); //append customs to list
+                if (playerTwoStatus.HasCustom) //pull from DB if possible
+                {
+                    //var result = await _repository.ScrapeH3(getCustoms: true, playerName: playerTwo); //get custom games if requested
+                }
+                else //else scrape
+                {
+                    var result = await _repository.ScrapeH3(getCustoms: true, playerName: playerTwo); //get custom games if requested
+                    playerTwoGames.AddRange(result); //append customs to list
+                }
 
             }
 
@@ -216,6 +252,8 @@ namespace pointcheck_api.Controllers
             resultObj.MatchedGames.Sort((x, y) => DateTime.Compare(y.gamedate, x.gamedate));
             System.Diagnostics.Debug.WriteLine("sending resultObj" + System.DateTime.Now);
 
+            //send necessary games to database
+            _repository.AddGamesPlayed(playerOne, "Halo 3", playerOneGames);
             return Ok(resultObj);
 
         }

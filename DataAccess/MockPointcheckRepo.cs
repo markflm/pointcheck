@@ -5,7 +5,7 @@ using pointcheck_api.Models;
 
 namespace pointcheck_api.DataAccess
 {
-    public class MockPointcheckRepo : IPointcheckRepo
+    public class MockPointcheckRepo //: IPointcheckRepo
     {
         public void AddGamesPlayed()
         {

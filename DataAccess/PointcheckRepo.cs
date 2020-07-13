@@ -112,23 +112,55 @@ namespace pointcheck_api.DataAccess
                 return null; //return null if player doesn't exist
         }
 
-        public bool IsInDbH3()
+        public PlayerStoredResult IsInDbH3(string player, string game)
         {
-            throw new System.NotImplementedException();
+            PlayerStoredResult status;
+            //throw new System.NotImplementedException();
+            var p = new DynamicParameters();
+            p.Add("@Player", player);
+            p.Add("@Game", game);
 
-            //this.db.Query
+           status = this.db.Query<PlayerStoredResult>("GetPlayerStatus", p, commandType: CommandType.StoredProcedure).SingleOrDefault();
+
+
+           return status;
         }
-        public bool IsInDbH2()
+        public PlayerStoredResult IsInDbH2(string player, string game)
         {
             throw new System.NotImplementedException();
         }
-        public bool IsInDbHR()
+        public PlayerStoredResult IsInDbHR(string player, string game)
         {
             throw new System.NotImplementedException();
         }
-        public void AddGamesPlayed()
+        public async void AddGamesPlayed(string player, string gameName, List<Game> gamesList)
         {
-            throw new System.NotImplementedException();
+            DataTable insertedGames = new DataTable();
+
+            insertedGames.Columns.Add("Player", typeof(string));
+            insertedGames.Columns.Add("Game", typeof(string));
+            insertedGames.Columns.Add("GameID", typeof(int));
+            insertedGames.Columns.Add("Map", typeof(string));
+            insertedGames.Columns.Add("Playlist", typeof(string));
+            insertedGames.Columns.Add("Gametype", typeof(string));
+            insertedGames.Columns.Add("PlayerKD", typeof(string));
+            insertedGames.Columns.Add("PlayerPlacing", typeof(string));
+            insertedGames.Columns.Add("GameDate", typeof(DateTime));
+
+            foreach(Game i in gamesList)
+            {
+                //object[] o = {player, gameName, i.gameID, i.map, i.playlist, i.gametype, i.playerOneKD, i.playerOnePlacing, i.gamedate};
+                insertedGames.Rows.Add(new {player, gameName, i.gameID, i.map, i.playlist, i.gametype, i.playerOneKD, i.playerOnePlacing, i.gamedate});
+            }
+
+            IDbTransaction trans = db.BeginTransaction();
+
+            db.ExecuteAsync(@"
+            INSERT INTO CachedGames(Player, Game, GameID, Map, Playlist, Gametype, PlayerKD, PlayerPlacing, GameDate, DateStored)
+            VALUES(@Player, @Game, @GameID, @Map, @Playlist, @Gametype, @PlayerKD, @PlayerPlacing, @GameDate)", insertedGames, transaction: trans);
+
+
+            //throw new System.NotImplementedException();
         }
 
         public MatchedGamesResult GetMatchedGames(string playerOne, string playerTwo)

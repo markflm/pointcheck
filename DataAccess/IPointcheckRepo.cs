@@ -6,7 +6,7 @@ namespace pointcheck_api.DataAccess
 {
     public interface IPointcheckRepo
     {
-        void AddGamesPlayed();
+        void AddGamesPlayed(string player, string gameName, List<Game> gamesList);
 
         MatchedGamesResult GetMatchedGames(string playerOne, string playerTwo);
         
@@ -15,11 +15,11 @@ namespace pointcheck_api.DataAccess
         int CorruptedCount();
         Game DatabaseTest();
 
-        bool IsInDbH3();
+        PlayerStoredResult IsInDbH3(string player, string game);
 
-        bool IsInDbH2();
+        PlayerStoredResult IsInDbH2(string player, string game);
 
-        bool IsInDbHR();
+        PlayerStoredResult IsInDbHR(string player, string game);
 
         Task<List<Game>> ScrapeH3(bool getCustoms, string playerName);
 
