@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json.Linq;
 using pointcheck_api.DataAccess;
 using pointcheck_api.Models;
@@ -115,7 +116,14 @@ namespace pointcheck_api.Controllers
 
             resultObj.playerOneName = playerOne; resultObj.playerTwoName = playerTwo;
 
-            resultObj.MatchedGames.Sort((x, y) => DateTime.Compare(y.gamedate, x.gamedate));
+            if (resultObj.MatchedGames.Count > 0)
+            {
+                resultObj.MatchedGames.Sort((x, y) => DateTime.Compare(y.gamedate, x.gamedate));
+            }
+            else
+            {
+                resultObj.note = playerOne + " and " + playerTwo + " have no matched games for Halo 2";
+            }
             System.Diagnostics.Debug.WriteLine("sending resultObj" + System.DateTime.Now);
 
             return Ok(resultObj);
@@ -140,6 +148,12 @@ namespace pointcheck_api.Controllers
             resultObj.playerOneEmblem = await _repository.GetEmblem("Halo 3", playerOne);  //link to the service record emblem
             resultObj.playerTwoEmblem = await _repository.GetEmblem("Halo 3", playerTwo);
 
+            StringValues getCustomsValue;
+            Request.Headers.TryGetValue("getCustoms", out getCustomsValue); //read request's header for getCustoms flag
+
+      
+            getCustoms = getCustomsValue.Contains("true"); //if getCustoms:true, search for custom games as well.
+
             if (resultObj.playerOneEmblem == null)
             {
                 resultObj.note = playerOne + " has no Bungie.net games for Halo 3";
@@ -152,12 +166,6 @@ namespace pointcheck_api.Controllers
             }
 
             System.Diagnostics.Debug.WriteLine("Players received: " + playerOne + " " + playerTwo + " " + System.DateTime.Now);
-
-            var reader = new StreamReader(Request.Body); //read request's json body
-
-            string reqBody = await reader.ReadToEndAsync();
-            getCustoms = reqBody.Contains("\"getCustoms\":true"); //if json request body includes getCustoms:true
-                                                                  //getCustoms = false; //take out
 
             System.Diagnostics.Debug.WriteLine("Getting " + playerOne + "'s H3 MM games " + System.DateTime.Now);
 
@@ -212,9 +220,18 @@ namespace pointcheck_api.Controllers
             resultObj.MatchedGames = final.ToList();
 
             resultObj.playerOneName = playerOne; resultObj.playerTwoName = playerTwo;
+            if (resultObj.MatchedGames.Count > 0)
+            {
+                resultObj.MatchedGames.Sort((x, y) => DateTime.Compare(y.gamedate, x.gamedate));
+            }
+            else
+            {
+                resultObj.note = playerOne + " and " + playerTwo + " have no matched games for Halo 3";
+            }
 
-            resultObj.MatchedGames.Sort((x, y) => DateTime.Compare(y.gamedate, x.gamedate));
             System.Diagnostics.Debug.WriteLine("sending resultObj" + System.DateTime.Now);
+
+            
 
             return Ok(resultObj);
 
@@ -232,6 +249,12 @@ namespace pointcheck_api.Controllers
             string playerOne = players[0]; //gamertag before the & in http req
             string playerTwo = players[1];
 
+            StringValues getCustomsValue;
+            Request.Headers.TryGetValue("getCustoms", out getCustomsValue); //read request's header for getCustoms flag
+
+
+            getCustoms = getCustomsValue.Contains("true"); //if getCustoms:true, search for custom games as well.
+
             MatchedGamesResult resultObj = new MatchedGamesResult(); //object to be returned from the endpoint
             //emblem check doubles as "does this guy exist?" check
             resultObj.playerOneEmblem = await _repository.GetEmblem("Halo Reach", playerOne);  //link to the service record emblem
@@ -248,12 +271,6 @@ namespace pointcheck_api.Controllers
                 return Ok(resultObj); //if either playerOne's name isn't a legit GT for that game
             }
             System.Diagnostics.Debug.WriteLine("Players received: " + playerOne + " " + playerTwo + " " + System.DateTime.Now);
-
-            var reader = new StreamReader(Request.Body); //read request's json body
-
-            string reqBody = await reader.ReadToEndAsync();
-            getCustoms = reqBody.Contains("\"getCustoms\":true"); //if json request body includes getCustoms:true
-            //getCustoms = false; //take out
 
             System.Diagnostics.Debug.WriteLine("Getting " + playerOne + "'s HR games " + System.DateTime.Now);
 
@@ -292,7 +309,14 @@ namespace pointcheck_api.Controllers
                         };
 
             resultObj.MatchedGames = final.ToList();
-            resultObj.MatchedGames.Sort((x, y) => DateTime.Compare(y.gamedate, x.gamedate)); //order games by date desc
+            if (resultObj.MatchedGames.Count > 0)
+            {
+                resultObj.MatchedGames.Sort((x, y) => DateTime.Compare(y.gamedate, x.gamedate)); //order games by date desc
+            }
+            else
+            {
+                resultObj.note = playerOne + " and " + playerTwo + " have no matched games for Halo Reach";
+            }
             resultObj.playerOneName = playerOne; resultObj.playerTwoName = playerTwo;
 
             System.Diagnostics.Debug.WriteLine("sending resultObj" + System.DateTime.Now);

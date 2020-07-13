@@ -578,7 +578,7 @@ namespace pointcheck_api.DataAccess
             List<string> corruptedPages = new List<string>();
             string date;
 
-            //if (getCustoms) - don't need get customs logic, customs included in regular gameID feed for H2
+   
 
             matchHistoryP2 = "vc=3&player="; //URL for MM games
 
@@ -612,13 +612,12 @@ namespace pointcheck_api.DataAccess
             }
             if (getCustoms)
             {
-                /*                 int approxNumOfCustomPages;
-                                tagGameCount = "<span id=\"ctl00_bottomContent_pieChartPopoutRepeater_ctl03_gameCountLabel\">2,431</span>";
-                                sigStartCustomGameCount = fullhtml.IndexOf(tagGameCount);
-                                substringLen = tagGameCount.Length;
-                                sigEndCustomGameCount = fullhtml.IndexOf("</span>");
+                                int approxNumOfCustomPages;
+                                tagGameCount = fullhtml.IndexOf("<h4>Custom</h4>");
+                                sigStartCustomGameCount = fullhtml.IndexOf("\">", tagGameCount);
+                                sigEndCustomGameCount = fullhtml.IndexOf("</span>", sigStartCustomGameCount);
 
-                                numOfCustomGames = int.Parse(fullhtml.Substring(sigStartCustomGameCount + substringLen, (sigEndCompGameCount - sigStartCompGameCount - substringLen)).Replace(",", "")); //remove comma in thousands
+                                numOfCustomGames = int.Parse(fullhtml.Substring(sigStartCustomGameCount + "\">".Length, (sigEndCustomGameCount - sigStartCustomGameCount - "\">".Length)).Replace(",", "")); //remove comma in thousands
                                 approxNumOfCustomPages = (numOfCustomGames / 25) + 1;
                                 matchHistoryP2 = "vc=6&player="; //vc6 == customs
 
@@ -627,7 +626,7 @@ namespace pointcheck_api.DataAccess
                                     Uri siteLink = new Uri(matchHistoryP1 + matchHistoryP2 + GT + "&page=" + i);
 
                                     newTasks.Add(httpReq(siteLink));
-                                } */
+                                } 
             }
 
 
