@@ -256,6 +256,8 @@ namespace pointcheck_api.Controllers
             getCustoms = getCustomsValue.Contains("true"); //if getCustoms:true, search for custom games as well.
 
             MatchedGamesResult resultObj = new MatchedGamesResult(); //object to be returned from the endpoint
+
+            resultObj.playerOneName = playerOne; resultObj.playerTwoName = playerTwo;
             //emblem check doubles as "does this guy exist?" check
             resultObj.playerOneEmblem = await _repository.GetEmblem("Halo Reach", playerOne);  //link to the service record emblem
             resultObj.playerTwoEmblem = await _repository.GetEmblem("Halo Reach", playerTwo);
@@ -276,7 +278,11 @@ namespace pointcheck_api.Controllers
 
             playerOneGames = await _repository.ScrapeHR(getCustoms, playerOne);
             if (_repository.CorruptedCount() > 50)
-                resultObj.note += (playerOne + "has " + _repository.CorruptedCount() + " corrupted games. consider re-running ");
+            {
+                resultObj.note += (playerOne + " has " + _repository.CorruptedCount() + " corrupted games. Re-run search to fix");
+                return Ok(resultObj);
+            
+            }
 
 
 
@@ -285,7 +291,7 @@ namespace pointcheck_api.Controllers
             playerTwoGames = await _repository.ScrapeHR(getCustoms, playerTwo);
 
             if (_repository.CorruptedCount() > 50)
-                resultObj.note += (playerTwo + "has " + _repository.CorruptedCount() + " corrupted games. consider re-running");
+                resultObj.note += (playerTwo + " has " + _repository.CorruptedCount() + " corrupted games. Re-run search to fix");
 
 
             System.Diagnostics.Debug.WriteLine("Filtering game lists to find common gameIDs " + System.DateTime.Now);
@@ -317,9 +323,9 @@ namespace pointcheck_api.Controllers
             {
                 resultObj.note = playerOne + " and " + playerTwo + " have no matched games for Halo Reach";
             }
-            resultObj.playerOneName = playerOne; resultObj.playerTwoName = playerTwo;
+            
 
-            System.Diagnostics.Debug.WriteLine("sending resultObj" + System.DateTime.Now);
+            System.Diagnostics.Debug.WriteLine("sending resultObj " + System.DateTime.Now);
 
             return Ok(resultObj);
         }
